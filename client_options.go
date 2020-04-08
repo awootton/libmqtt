@@ -337,7 +337,7 @@ func WithDialTimeout(timeout uint16) Option {
 func WithVersion(version ProtoVersion, compromise bool) Option {
 	return func(c *AsyncClient, options *connectOptions) error {
 		switch version {
-		case V311, V5:
+		case 3, V311, V5:
 			options.protoVersion = version
 			options.protoCompromise = compromise
 			return nil

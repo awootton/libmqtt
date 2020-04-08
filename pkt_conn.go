@@ -113,7 +113,7 @@ func (c *ConnPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlConn << 4
 	varHeader := []byte{0x0, 0x4, 'M', 'Q', 'T', 'T', byte(V311), c.flags(), byte(c.Keepalive >> 8), byte(c.Keepalive)}
 	switch c.Version() {
-	case V311:
+	case 3,V311:
 		return c.write(w, first, varHeader, c.payload())
 	case V5:
 		varHeader[6] = byte(V5)
@@ -391,7 +391,7 @@ func (c *ConnAckPacket) WriteTo(w BufferedWriter) error {
 	}
 
 	switch c.Version() {
-	case V311:
+	case 3,V311:
 		_, err := w.Write([]byte{CtrlConnAck << 4, 2, boolToByte(c.Present), c.Code})
 		return err
 	case V5:
@@ -607,7 +607,7 @@ func (d *DisconnPacket) WriteTo(w BufferedWriter) error {
 	)
 
 	switch d.Version() {
-	case V311:
+	case 3,V311:
 		_, err = w.Write([]byte{CtrlDisConn << 4, 0})
 		return err
 	case V5:

@@ -17,6 +17,7 @@
 package libmqtt
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"sync"
@@ -30,119 +31,6 @@ var (
 		propKeySharedSubAvail:   true,
 	}
 )
-
-type propertySet map[byte][][]byte
-
-func (p propertySet) add(propKey byte, propValue interface{}) {
-	var val []byte
-	switch v := propValue.(type) {
-	case string:
-		if propValue.(string) != "" {
-			val = encodeStringWithLen(propValue.(string))
-		}
-	case []byte:
-		if len(propValue.([]byte)) > 0 {
-			val = encodeBytesWithLen(propValue.([]byte))
-		}
-	case *bool:
-		if *v {
-			val = []byte{1}
-		} else {
-			val = []byte{0}
-		}
-	case bool:
-		if v {
-			val = []byte{1}
-		} else {
-			val = []byte{0}
-		}
-	case uint8:
-		if v != 0 {
-			val = []byte{v}
-		}
-	case uint16:
-		if v != 0 {
-			val = make([]byte, 2)
-			putUint16(val, v)
-		}
-	case int:
-		val, _ = varIntBytes(v)
-	case uint32:
-		if v != 0 {
-			val = make([]byte, 4)
-			putUint32(val, v)
-		}
-	case UserProps:
-		v.encodeTo(val)
-	case nil:
-		return
-	default:
-		panic(fmt.Sprintf("unexpected property value type %T", v))
-	}
-
-	if v, ok := p[propKey]; ok {
-		p[propKey] = append(v, val)
-	}
-}
-
-func (p propertySet) set(propKey byte, propValue interface{}) {
-	p.del(propKey)
-	p.add(propKey, propValue)
-}
-
-func (p propertySet) del(propKey byte) {
-	delete(p, propKey)
-}
-
-func (p propertySet) bytes() []byte {
-	var ret []byte
-	for propKey, propValue := range p {
-		for _, v := range propValue {
-			ret = append(ret, propKey)
-			ret = append(ret, v...)
-		}
-	}
-	return ret
-}
-
-// UserProps contains user defined properties
-type UserProps map[string][]string
-
-func (u UserProps) Add(key, value string) {
-	val, ok := u[key]
-	if !ok || val == nil {
-		val = make([]string, 0)
-	}
-
-	u[key] = append(val, value)
-}
-
-func (u UserProps) Get(key string) (string, bool) {
-	if val, ok := u[key]; ok && len(val) > 0 {
-		return val[0], true
-	}
-
-	return "", false
-}
-
-func (u UserProps) Set(key string, value string) {
-	u[key] = []string{value}
-}
-
-func (u UserProps) Del(key string) {
-	delete(u, key)
-}
-
-func (u UserProps) encodeTo(result []byte) []byte {
-	for k, v := range u {
-		for _, val := range v {
-			// result = append(result, propKeyUserProps)
-			result = append(result, encodeStringWithLen(k)...)
-			result = append(result, encodeStringWithLen(val)...)
-		}
-	}
-	return result
-}
 
 // Packet is MQTT control packet
 type Packet interface {
@@ -168,31 +56,48 @@ type BasePacket struct {
 }
 
 func (b *BasePacket) write(w io.Writer, first byte, varHeader, payload []byte) error {
+
+	var bb bytes.Buffer
+
+	bb.Write([]byte{first})
+
 	_, err := w.Write([]byte{first})
 	if err != nil {
 		return err
 	}
 
+	//fmt.Println("part 0", hex.EncodeToString(bb.Bytes()))
+
 	remainingLengthBytes, err := varIntBytes(len(varHeader) + len(payload))
 	if err != nil {
 		return err
 	}
+	bb.Write(remainingLengthBytes)
+
+	//fmt.Println("part 1", hex.EncodeToString(bb.Bytes()))
 
 	_, err = w.Write(remainingLengthBytes)
 	if err != nil {
 		return err
 	}
 
+	//fmt.Println("part 2", hex.EncodeToString(bb.Bytes()))
+
 	if varHeader != nil {
+		bb.Write(varHeader)
 		_, err = w.Write(varHeader)
 		if err != nil {
 			return err
 		}
 	}
 
+	//fmt.Println("part 3", hex.EncodeToString(bb.Bytes()))
+
 	if payload != nil {
+		bb.Write(payload)
 		_, err = w.Write(payload)
 	}
+	//fmt.Println("part 4", hex.EncodeToString(bb.Bytes()))
 	return err
 }
 
@@ -205,8 +110,17 @@ func (b *BasePacket) writeV5(w io.Writer, first byte, varHeader, props, payload 
 
 	actualVarHeader := make([]byte, 0, len(varHeader)+len(propsLengthBytes)+propLen)
 	actualVarHeader = append(actualVarHeader, varHeader...)
+
+	//fmt.Println("actualVarHeader 1", hex.EncodeToString(actualVarHeader))
+
 	actualVarHeader = append(actualVarHeader, propsLengthBytes...)
+
+	//fmt.Println("actualVarHeader 2", hex.EncodeToString(actualVarHeader))
+
 	actualVarHeader = append(actualVarHeader, props...)
+
+	//fmt.Println("actualVarHeader 3", hex.EncodeToString(actualVarHeader))
+
 	return b.write(w, first, actualVarHeader, payload)
 }
 
@@ -382,3 +296,187 @@ const (
 	propKeySubIDAvail             = 41 // byte, Packet: ConnAck
 	propKeySharedSubAvail         = 42 // byte, Packet: ConnAck
 )
+
+type propertySet map[byte][][]byte
+
+func (p propertySet) add(propKey byte, propValue interface{}) {
+	var val []byte
+	switch v := propValue.(type) {
+	case string:
+		if propValue.(string) != "" {
+			val = encodeStringWithLen(propValue.(string))
+		}
+	case []byte:
+		if len(propValue.([]byte)) > 0 {
+			val = encodeBytesWithLen(propValue.([]byte))
+		}
+	case *bool:
+		if *v {
+			val = []byte{1}
+		} else {
+			val = []byte{0}
+		}
+	case bool:
+		if v {
+			val = []byte{1}
+		} else {
+			val = []byte{0}
+		}
+	case uint8:
+		if v != 0 {
+			val = []byte{v}
+		}
+	case uint16:
+		if v != 0 {
+			val = make([]byte, 2)
+			putUint16(val, v)
+		}
+	case int:
+		val, _ = varIntBytes(v)
+	case uint32:
+		if v != 0 {
+			val = make([]byte, 4)
+			putUint32(val, v)
+		}
+	case UserProps:
+		val = v.encodeTo(val)
+	case nil:
+		return
+	default:
+		panic(fmt.Sprintf("unexpected property value type %T", v))
+	}
+	v, ok := p[propKey]
+	if ok && len(val) != 0 {
+		p[propKey] = append(v, val)
+	}
+}
+
+func (p propertySet) set(propKey byte, propValue interface{}) {
+	//p.del(propKey) ??
+	_, ok := p[propKey]
+	if ok == false {
+		p[propKey] = make([][]byte, 0)
+	}
+	p.add(propKey, propValue)
+}
+
+func (p propertySet) del(propKey byte) {
+	delete(p, propKey)
+}
+
+func (p propertySet) bytes() []byte {
+	var ret []byte
+	for propKey, propValue := range p {
+		for _, v := range propValue {
+			ret = append(ret, propKey)
+			ret = append(ret, v...)
+		}
+	}
+	return ret
+}
+
+func (p propertySet) append(propKey byte, propValue interface{}, result []byte) []byte {
+	var val []byte
+	switch v := propValue.(type) {
+	case string:
+		if propValue.(string) != "" {
+			val = encodeStringWithLen(propValue.(string))
+			result = append(result, propKey)
+			result = append(result, val...)
+		}
+	case []byte:
+		if len(propValue.([]byte)) > 0 {
+			val = encodeBytesWithLen(propValue.([]byte))
+			result = append(result, propKey)
+			result = append(result, val...)
+		}
+	case *bool:
+		if *v {
+			val = []byte{1}
+		} else {
+			val = []byte{0}
+		}
+		result = append(result, propKey)
+		result = append(result, val...)
+	case bool:
+		if v {
+			val = []byte{1}
+		} else {
+			val = []byte{0}
+		}
+		result = append(result, propKey)
+		result = append(result, val...)
+	case uint8:
+		if v != 0 {
+			val = []byte{v}
+		}
+		result = append(result, propKey)
+		result = append(result, val...)
+	case uint16:
+		if v != 0 {
+			val = make([]byte, 2)
+			putUint16(val, v)
+		}
+		result = append(result, propKey)
+		result = append(result, val...)
+	case int:
+		val, _ = varIntBytes(v)
+		result = append(result, propKey)
+		result = append(result, val...)
+	case uint32:
+		if v != 0 {
+			val = make([]byte, 4)
+			putUint32(val, v)
+			result = append(result, propKey)
+			result = append(result, val...)
+		}
+	case UserProps:
+		val = v.encodeTo(val)
+		// no: result = append(result, propKey)
+		result = append(result, val...)
+	case nil:
+		return result
+	default:
+		panic(fmt.Sprintf("unexpected property value type %T", v))
+	}
+	return result
+}
+
+// UserProps contains user defined properties
+type UserProps map[string][]string
+
+func (u UserProps) Add(key, value string) {
+	val, ok := u[key]
+	if !ok || val == nil {
+		val = make([]string, 0)
+	}
+
+	u[key] = append(val, value)
+}
+
+func (u UserProps) Get(key string) (string, bool) {
+	if val, ok := u[key]; ok && len(val) > 0 {
+		return val[0], true
+	}
+
+	return "", false
+}
+
+func (u UserProps) Set(key string, value string) {
+	u[key] = []string{value}
+}
+
+func (u UserProps) Del(key string) {
+	delete(u, key)
+}
+
+func (u UserProps) encodeTo(result []byte) []byte {
+	for k, v := range u {
+		for _, val := range v {
+			result = append(result, propKeyUserProps)
+			result = append(result, encodeStringWithLen(k)...)
+			result = append(result, encodeStringWithLen(val)...)
+		}
+	}
+	return result
+}

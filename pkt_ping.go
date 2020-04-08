@@ -55,7 +55,7 @@ func (p *pingReqPacket) WriteTo(w BufferedWriter) error {
 	}
 
 	switch p.Version() {
-	case V311, V5:
+	case 3, V311, V5:
 		_ = w.WriteByte(CtrlPingReq << 4)
 		return w.WriteByte(0x00)
 	default:
@@ -89,7 +89,7 @@ func (p *pingRespPacket) WriteTo(w BufferedWriter) error {
 	}
 
 	switch p.Version() {
-	case V311, V5:
+	case 3, V311, V5:
 		_ = w.WriteByte(CtrlPingResp << 4)
 		return w.WriteByte(0x00)
 	default:

@@ -64,7 +64,7 @@ var (
 func testPacketBytes(version ProtoVersion, pkt Packet, target []byte, t *testing.T) {
 	task := func() string {
 		switch version {
-		case V311:
+		case 3,V311:
 			return "V311"
 		case V5:
 			return "V5"
@@ -103,5 +103,5 @@ func init() {
 	initTestData_Ping()
 	initTestData_Conn()
 	initTestData_Sub()
-	initTestData_Pub()
+	initTestDataPub()
 }

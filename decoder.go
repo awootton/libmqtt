@@ -67,8 +67,20 @@ func Decode(version ProtoVersion, r BufferedReader) (Packet, error) {
 		return nil, err
 	}
 
+	if version == 0 {
+		protocol, b2, err := getStringData(body)
+		_ = protocol // "MQTT" checked later
+		if err == nil {
+			if len(b2) >= 4 {
+				version = ProtoVersion(b2[0])
+			}
+		}
+	}
+
 	switch version {
-	case V311:
+	//case 3: // for http://www.hivemq.com/demos/websocket-client/
+	//	return decodeV311Packet(header, body)
+	case 3, V311:
 		return decodeV311Packet(header, body)
 	case V5:
 		return decodeV5Packet(header, body)
@@ -91,7 +103,7 @@ func decodeV311Packet(header byte, body []byte) (Packet, error) {
 			return nil, ErrDecodeBadPacket
 		}
 
-		if body[0] != byte(V311) {
+		if body[0] != byte(V311) && body[0] != byte(3) {
 			return nil, ErrDecodeNoneV311Packet
 		}
 

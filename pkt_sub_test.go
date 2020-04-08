@@ -18,10 +18,70 @@ package libmqtt
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"testing"
 
 	std "github.com/eclipse/paho.mqtt.golang/packets"
 )
+
+func TestSubbasic5(t *testing.T) {
+
+	// These hex strings were glommed from 'pip3 install gmqtt'
+	// which seems to know mqtt5 better
+
+	hexdata1 := "8213000100000d544553542f54494d456162636400"
+	data, _ := hex.DecodeString(hexdata1)
+	r := bytes.NewReader(data)
+
+	p, err := Decode(5, r)
+	fmt.Println("got packet", p, err)
+	sub := p.(*SubscribePacket)
+	if sub.Topics[0].Name != "TEST/TIMEabcd" {
+		t.Error("wanted TEST/TIMEabcd, got", sub.Topics[0])
+	}
+
+	hexdata2 := "823000021a2600046b657931000476616c312600046b657932000476616c320010544553542f54494d4565666768696a6b01"
+	data, _ = hex.DecodeString(hexdata2)
+	r = bytes.NewReader(data)
+	p, err = Decode(5, r)
+	fmt.Println("got packet", p, err)
+	sub = p.(*SubscribePacket)
+	if sub.Topics[0].Name != "TEST/TIMEefghijk" {
+		t.Error("wanted TEST/TIMEefghijk, got", sub.Topics[0])
+	}
+	val, _ := sub.Props.UserProps.Get("key1")
+	fmt.Println("got val", val)
+	val, _ = sub.Props.UserProps.Get("key2")
+	fmt.Println("got val", val)
+	if val != "val2" {
+		t.Error("wanted val2")
+	}
+	fmt.Println("got PacketID", sub.PacketID)
+	fmt.Println("got Props.SubID", sub.Props.SubID)
+
+	// now go the other way.
+	sub = &SubscribePacket{
+		Topics: []*Topic{
+			{Name: "TEST/TIMEefghijk", Qos: 1},
+		},
+		PacketID: 2,
+		Props: &SubscribeProps{
+			SubID:     0,
+			UserProps: UserProps{"key1": []string{"val1"}, "key2": []string{"val2"}},
+		},
+	}
+	sub.SetVersion(5)
+
+	var buff bytes.Buffer
+
+	err = sub.WriteTo(&buff)
+	derivedHex := hex.EncodeToString(buff.Bytes())
+	if derivedHex != hexdata2 {
+		t.Error("our result must match the gmqtt serialization")
+	}
+
+}
 
 // sub test data
 var (
@@ -141,7 +201,7 @@ func TestSubscribePacket_Bytes(t *testing.T) {
 func TestSubAckPacket_Bytes(t *testing.T) {
 	for i, p := range testSubAckMsgs {
 		testPacketBytes(V311, p, testSubAckMsgBytesV311[i], t)
-		//testPacketBytes(V5, p, testSubAckMsgBytesV5[i], t)
+		// atw todo: finish these. testPacketBytes(V5, p, testSubAckMsgBytesV5[i], t)
 	}
 }
 

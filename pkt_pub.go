@@ -16,7 +16,11 @@
 
 package libmqtt
 
-import "bytes"
+import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+)
 
 // PublishPacket is sent from a Client to a Server or from Server to a Client
 // to transport an Application Message.
@@ -36,6 +40,7 @@ func (p *PublishPacket) Type() CtrlType {
 	return CtrlPublish
 }
 
+// Bytes calls WriteTo
 func (p *PublishPacket) Bytes() []byte {
 	if p == nil {
 		return nil
@@ -46,6 +51,7 @@ func (p *PublishPacket) Bytes() []byte {
 	return w.Bytes()
 }
 
+// WriteTo serializes -- should be Write(io.Writer) error
 func (p *PublishPacket) WriteTo(w BufferedWriter) error {
 	if p == nil {
 		return ErrEncodeBadPacket
@@ -53,17 +59,26 @@ func (p *PublishPacket) WriteTo(w BufferedWriter) error {
 
 	first := CtrlPublish<<4 | boolToByte(p.IsDup)<<3 | boolToByte(p.IsRetain) | p.Qos<<1
 	switch p.Version() {
-	case V311:
+	case 3, V311:
 		return p.write(w, first, nil, p.payload())
 	case V5:
-		return p.writeV5(w, first, nil, p.Props.props(), p.payload())
+		varHeader := p.varHeader()
+		return p.writeV5(w, first, varHeader, p.Props.props(), p.Payload)
 	default:
 		return ErrUnsupportedVersion
 	}
 }
 
+func (p *PublishPacket) varHeader() []byte {
+	data := encodeStringWithLen(p.TopicName) // this can't be right
+	if p.Qos > Qos0 {
+		data = append(data, byte(p.PacketID>>8), byte(p.PacketID))
+	}
+	return data
+}
+
 func (p *PublishPacket) payload() []byte {
-	data := encodeStringWithLen(p.TopicName)
+	data := encodeStringWithLen(p.TopicName) // this can't be right
 	if p.Qos > Qos0 {
 		data = append(data, byte(p.PacketID>>8), byte(p.PacketID))
 	}
@@ -114,19 +129,44 @@ func (p *PublishProps) props() []byte {
 	if p == nil {
 		return nil
 	}
-
 	propSet := propertySet{}
-	propSet.set(propKeyPayloadFormatIndicator, p.PayloadFormat)
-	propSet.set(propKeyMessageExpiryInterval, p.MessageExpiryInterval)
-	propSet.set(propKeyTopicAlias, p.TopicAlias)
-	propSet.set(propKeyRespTopic, p.RespTopic)
-	propSet.set(propKeyCorrelationData, p.CorrelationData)
-	propSet.set(propKeyUserProps, p.UserProps)
-	for _, v := range p.SubIDs {
-		propSet.add(propKeySubID, v)
+	var result []byte
+
+	if p.PayloadFormat != 0 {
+		result = propSet.append(propKeyPayloadFormatIndicator, p.PayloadFormat, result)
 	}
-	propSet.set(propKeyContentType, p.ContentType)
-	return propSet.bytes()
+	if p.MessageExpiryInterval != 0 {
+		result = propSet.append(propKeyMessageExpiryInterval, p.MessageExpiryInterval, result)
+	}
+	if p.TopicAlias != 0 {
+		result = propSet.append(propKeyTopicAlias, p.TopicAlias, result)
+	}
+	if len(p.RespTopic) != 0 {
+		result = propSet.append(propKeyRespTopic, p.RespTopic, result)
+	}
+	if len(p.CorrelationData) != 0 {
+		result = propSet.append(propKeyCorrelationData, p.CorrelationData, result)
+	}
+	if len(p.UserProps) != 0 {
+		result = propSet.append(propKeyUserProps, p.UserProps, result)
+	}
+	if p.SubIDs != nil {
+		buf := &bytes.Buffer{}
+		for _, v := range p.SubIDs {
+			result = append(result, propKeySubID)
+			writeVarInt(v, buf)
+			result = append(result, buf.Bytes()...)
+			buf.Reset()
+		}
+	}
+	if p.ContentType != "" {
+		result = append(result, propKeyContentType)
+		result = append(result, encodeStringWithLen(p.ContentType)...)
+	}
+
+	fmt.Println("props bytes", hex.EncodeToString(result))
+
+	return result
 }
 
 func (p *PublishProps) setProps(props map[byte][]byte) {
@@ -203,7 +243,7 @@ func (p *PubAckPacket) WriteTo(w BufferedWriter) error {
 
 	varHeader := []byte{byte(p.PacketID >> 8), byte(p.PacketID)}
 	switch p.Version() {
-	case V311:
+	case 3, V311:
 		return p.write(w, CtrlPubAck<<4, varHeader, nil)
 	case V5:
 		return p.writeV5(w, CtrlPubAck<<4, varHeader, p.Props.props(), nil)
@@ -278,7 +318,7 @@ func (p *PubRecvPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlPubRecv << 4
 	varHeader := []byte{byte(p.PacketID >> 8), byte(p.PacketID)}
 	switch p.Version() {
-	case V311:
+	case 3, V311:
 		return p.write(w, first, varHeader, nil)
 	case V5:
 		return p.writeV5(w, first, varHeader, p.Props.props(), nil)
@@ -353,7 +393,7 @@ func (p *PubRelPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlPubRel<<4 | 0x02
 	varHeader := []byte{byte(p.PacketID >> 8), byte(p.PacketID)}
 	switch p.Version() {
-	case V311:
+	case 3, V311:
 		return p.write(w, first, varHeader, nil)
 	case V5:
 		return p.writeV5(w, first, varHeader, p.Props.props(), nil)
@@ -427,7 +467,7 @@ func (p *PubCompPacket) WriteTo(w BufferedWriter) error {
 
 	varHeader := []byte{byte(p.PacketID >> 8), byte(p.PacketID)}
 	switch p.Version() {
-	case V311:
+	case 3, V311:
 		return p.write(w, CtrlPubComp<<4, varHeader, nil)
 	case V5:
 		return p.writeV5(w, CtrlPubComp<<4, varHeader, p.Props.props(), nil)

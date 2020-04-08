@@ -16,7 +16,9 @@
 
 package libmqtt
 
-import "bytes"
+import (
+	"bytes"
+)
 
 // SubscribePacket is sent from the Client to the Server
 // to create one or more Subscriptions.
@@ -38,6 +40,7 @@ func (s *SubscribePacket) Type() CtrlType {
 	return CtrlSubscribe
 }
 
+// Bytes to call write
 func (s *SubscribePacket) Bytes() []byte {
 	if s == nil {
 		return nil
@@ -48,6 +51,7 @@ func (s *SubscribePacket) Bytes() []byte {
 	return w.Bytes()
 }
 
+// WriteTo to serialize
 func (s *SubscribePacket) WriteTo(w BufferedWriter) error {
 	if s == nil {
 		return ErrEncodeBadPacket
@@ -56,7 +60,7 @@ func (s *SubscribePacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlSubscribe<<4 | 0x02
 	varHeader := []byte{byte(s.PacketID >> 8), byte(s.PacketID)}
 	switch s.Version() {
-	case V311:
+	case 3, V311:
 		return s.write(w, first, varHeader, s.payload())
 	case V5:
 		return s.writeV5(w, first, varHeader, s.Props.props(), s.payload())
@@ -97,9 +101,9 @@ func (s *SubscribeProps) props() []byte {
 	}
 
 	if s.UserProps != nil {
-		result = append(result, propKeyUserProps)
-		s.UserProps.encodeTo(result)
+		result = s.UserProps.encodeTo(result)
 	}
+
 	return result
 }
 
@@ -136,6 +140,7 @@ func (s *SubAckPacket) Type() CtrlType {
 	return CtrlSubAck
 }
 
+// Bytes to serialize
 func (s *SubAckPacket) Bytes() []byte {
 	if s == nil {
 		return nil
@@ -146,6 +151,7 @@ func (s *SubAckPacket) Bytes() []byte {
 	return w.Bytes()
 }
 
+// WriteTo to serialize
 func (s *SubAckPacket) WriteTo(w BufferedWriter) error {
 	if s == nil {
 		return ErrEncodeBadPacket
@@ -154,7 +160,7 @@ func (s *SubAckPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlSubAck << 4
 	varHeader := []byte{byte(s.PacketID >> 8), byte(s.PacketID)}
 	switch s.Version() {
-	case V311:
+	case 3, V311:
 		return s.write(w, first, varHeader, s.payload())
 	case V5:
 		return s.writeV5(w, first, varHeader, s.Props.props(), s.payload())
@@ -206,7 +212,7 @@ func (p *SubAckProps) setProps(props map[byte][]byte) {
 	}
 }
 
-type UnSubPacket = UnsubPacket
+// atw why was this here?  type UnSubPacket = UnsubPacket
 
 // UnsubPacket is sent by the Client to the Server,
 // to unsubscribe from topics.
@@ -222,6 +228,7 @@ func (s *UnsubPacket) Type() CtrlType {
 	return CtrlUnSub
 }
 
+// Bytes calls WriteTo
 func (s *UnsubPacket) Bytes() []byte {
 	if s == nil {
 		return nil
@@ -232,6 +239,7 @@ func (s *UnsubPacket) Bytes() []byte {
 	return w.Bytes()
 }
 
+// WriteTo should be just Write
 func (s *UnsubPacket) WriteTo(w BufferedWriter) error {
 	if s == nil {
 		return ErrEncodeBadPacket
@@ -240,7 +248,7 @@ func (s *UnsubPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlUnSub<<4 | 0x02
 	varHeader := []byte{byte(s.PacketID >> 8), byte(s.PacketID)}
 	switch s.Version() {
-	case V311:
+	case 3, V311:
 		return s.write(w, first, varHeader, s.payload())
 	case V5:
 		return s.writeV5(w, first, varHeader, s.Props.props(), s.payload())
@@ -259,7 +267,8 @@ func (s *UnsubPacket) payload() []byte {
 	return result
 }
 
-type UnSubProps = UnsubProps
+// UnSubProps because why?
+type UnSubProps = UnsubProps // why??
 
 // UnsubProps properties for UnsubPacket
 type UnsubProps struct {
@@ -289,6 +298,7 @@ func (p *UnsubProps) setProps(props map[byte][]byte) {
 	}
 }
 
+// UnSubAckPacket is confusing
 type UnSubAckPacket = UnsubAckPacket
 
 // UnsubAckPacket is sent by the Server to the Client to confirm
@@ -304,6 +314,7 @@ func (s *UnsubAckPacket) Type() CtrlType {
 	return CtrlUnSubAck
 }
 
+// Bytes is a utility
 func (s *UnsubAckPacket) Bytes() []byte {
 	if s == nil {
 		return nil
@@ -314,6 +325,7 @@ func (s *UnsubAckPacket) Bytes() []byte {
 	return w.Bytes()
 }
 
+// WriteTo is
 func (s *UnsubAckPacket) WriteTo(w BufferedWriter) error {
 	if s == nil {
 		return ErrEncodeBadPacket
@@ -322,7 +334,7 @@ func (s *UnsubAckPacket) WriteTo(w BufferedWriter) error {
 	const first = CtrlUnSubAck << 4
 	varHeader := []byte{byte(s.PacketID >> 8), byte(s.PacketID)}
 	switch s.Version() {
-	case V311:
+	case 3, V311:
 		return s.write(w, first, varHeader, nil)
 	case V5:
 		return s.writeV5(w, first, varHeader, s.Props.props(), nil)
