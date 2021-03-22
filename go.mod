@@ -1,4 +1,4 @@
-module github.com/goiiot/libmqtt
+module github.com/thei4t/libmqtt
 
 go 1.14
 
