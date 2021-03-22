@@ -1,6 +1,6 @@
 # libmqtt Java lib
 
-A MQTT Java client library exported from [libmqtt](https://github.com/goiiot/libmqtt) with JNI
+A MQTT Java client library exported from [libmqtt](https://github.com/thei4t/libmqtt) with JNI
 
 __NOTE__: This library is still under work, some bugs can happen
 
@@ -23,13 +23,13 @@ __NOTE__: This library is still under work, some bugs can happen
 1. Go get this project
 
 ```bash
-go get github.com/goiiot/libmqtt
+go get github.com/thei4t/libmqtt
 ```
 
 2. Make the basic C library
 
 ```bash
-cd $GOPATH/src/github.com/goiiot/libmqtt/c
+cd $GOPATH/src/github.com/thei4t/libmqtt/c
 
 make
 ```

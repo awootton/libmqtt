@@ -119,7 +119,7 @@ import (
 	"sync"
 	"unsafe"
 
-	mqtt "github.com/goiiot/libmqtt"
+	mqtt "github.com/thei4t/libmqtt"
 )
 
 var (

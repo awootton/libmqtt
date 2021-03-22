@@ -45,7 +45,7 @@ import (
 	"time"
 	"unsafe"
 
-	mqtt "github.com/goiiot/libmqtt"
+	mqtt "github.com/thei4t/libmqtt"
 )
 
 var (

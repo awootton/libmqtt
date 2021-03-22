@@ -24,7 +24,7 @@ import (
 	"strings"
 	"sync"
 
-	mqtt "github.com/goiiot/libmqtt"
+	mqtt "github.com/thei4t/libmqtt"
 )
 
 const (

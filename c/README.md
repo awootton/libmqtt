@@ -22,13 +22,13 @@ __NOTE__: This library is still under work, some bugs can happen
 1. Go get this project
 
 ```bash
-go get github.com/goiiot/libmqtt
+go get github.com/thei4t/libmqtt
 ```
 
 2. Make the library
 
 ```bash
-cd $GOPATH/src/github.com/goiiot/libmqtt/c
+cd $GOPATH/src/github.com/thei4t/libmqtt/c
 
 make
 ```

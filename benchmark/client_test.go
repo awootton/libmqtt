@@ -22,7 +22,7 @@ import (
 
 	pah "github.com/eclipse/paho.mqtt.golang"
 
-	lib "github.com/goiiot/libmqtt"
+	lib "github.com/thei4t/libmqtt"
 )
 
 const (

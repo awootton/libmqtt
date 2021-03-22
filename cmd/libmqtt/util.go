@@ -17,7 +17,7 @@
 package main
 
 import (
-	mqtt "github.com/goiiot/libmqtt"
+	mqtt "github.com/thei4t/libmqtt"
 )
 
 func connHandler(client mqtt.Client, server string, code byte, err error) {

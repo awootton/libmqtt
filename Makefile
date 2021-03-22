@@ -65,7 +65,7 @@ clean: clean_all_lib fuzz_clean
 	rm -rf coverage.txt
 
 fuzz_test:
-	go-fuzz-build github.com/goiiot/libmqtt
+	go-fuzz-build github.com/thei4t/libmqtt
 	go-fuzz -bin=./libmqtt-fuzz.zip -workdir=fuzz-test
 
 fuzz_clean:

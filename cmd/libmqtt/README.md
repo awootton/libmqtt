@@ -15,7 +15,7 @@ A command line MQTT client built on top of libmqtt.
 1. Go get and build this command line client
 
 ```bash
-go get github.com/goiiot/libmqtt/cmd/libmqtt
+go get github.com/thei4t/libmqtt/cmd/libmqtt
 ```
 
 2. Run, and explore usages (include `$GOPATH/bin` in `PATH`)

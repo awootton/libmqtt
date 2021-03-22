@@ -20,7 +20,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/goiiot/libmqtt"
+	"github.com/thei4t/libmqtt"
 )
 
 // ExampleClient example of client creation
