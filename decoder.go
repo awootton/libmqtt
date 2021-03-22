@@ -249,7 +249,7 @@ func decodeV5Packet(header byte, body []byte) (Packet, error) {
 			Keepalive:    getUint16(next[2:4]),
 			Props:        &ConnProps{},
 		}
-		pkt.ProtoVersion = ProtoVersion(body[0])
+		pkt.ProtoVersion = ProtoVersion(5) //body[0])
 
 		// read properties
 		var props map[byte][]byte
@@ -266,6 +266,8 @@ func decodeV5Packet(header byte, body []byte) (Packet, error) {
 		if pkt.IsWill {
 			pkt.WillTopic, next, err = getStringData(next)
 			pkt.WillMessage, next, err = getBinaryData(next)
+			// check err ? 
+			err = nil
 		}
 
 		if hasUsername {

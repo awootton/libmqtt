@@ -18,8 +18,6 @@ package libmqtt
 
 import (
 	"bytes"
-	"encoding/hex"
-	"fmt"
 )
 
 // PublishPacket is sent from a Client to a Server or from Server to a Client
@@ -164,7 +162,7 @@ func (p *PublishProps) props() []byte {
 		result = append(result, encodeStringWithLen(p.ContentType)...)
 	}
 
-	fmt.Println("props bytes", hex.EncodeToString(result))
+	//fmt.Println("props bytes", hex.EncodeToString(result))
 
 	return result
 }
