@@ -4,7 +4,7 @@
 
 Feature rich modern MQTT library in pure Go, for `Go`, `C/C++`, `Java`
 
-Notice: This is a fork of https://github.com/goiiot/libmqtt that has been roughly patched to correctly handle packets from mqtt 3.1 and mqtt 5. The parent branch does not allow 3.1 and has mostly empty mqtt 5 tests and has completely broken mqtt5. (atw) 
+Notice: This is a fork of https://github.com/goiiot/libmqtt and https://github.com/awootton/libmqtt that has been roughly patched to correctly handle packets from mqtt 3.1 and mqtt 5. The parent branch does not allow 3.1 and has mostly empty mqtt 5 tests and has completely broken mqtt5. (atw) Sorry about the mess. 
 
 ## Table of contents
 
