@@ -223,7 +223,8 @@ func decodeV311Packet(header byte, body []byte) (Packet, error) {
 // decode mqtt v5 packets
 func decodeV5Packet(header byte, body []byte) (Packet, error) {
 	var err error
-	switch header >> 4 {
+	packetType := header >> 4
+	switch packetType {
 	case CtrlConn:
 		protocol, next, err := getStringData(body)
 		if err != nil {
@@ -266,7 +267,7 @@ func decodeV5Packet(header byte, body []byte) (Packet, error) {
 		if pkt.IsWill {
 			pkt.WillTopic, next, err = getStringData(next)
 			pkt.WillMessage, next, err = getBinaryData(next)
-			// check err ? 
+			// check err ?
 			err = nil
 		}
 

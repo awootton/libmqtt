@@ -103,6 +103,9 @@ func (s *SubscribeProps) props() []byte {
 	if s.UserProps != nil {
 		result = s.UserProps.encodeTo(result)
 	}
+	// if s.UserProps != nil {
+	// 	propSet.set(propKeyUserProps, p.UserProps)
+	// }
 
 	return result
 }
@@ -186,7 +189,6 @@ func (p *SubAckProps) props() []byte {
 	if p == nil {
 		return nil
 	}
-
 	propSet := propertySet{}
 	if p.Reason != "" {
 		propSet.set(propKeyReasonString, p.Reason)

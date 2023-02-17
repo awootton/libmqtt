@@ -25,6 +25,51 @@ import (
 	std "github.com/eclipse/paho.mqtt.golang/packets"
 )
 
+func TestSubAck5(t *testing.T) {
+
+	timeStr := "1234567890"
+
+	// 90
+	// 1b
+	// 0000
+	// 18
+	// 26 0009 756e69782d74696d65 000a 31323334353637383930
+
+	// write an ack
+	suback := &SubAckPacket{
+		Props: &SubAckProps{
+			// Reason:    "ok",
+			UserProps: UserProps{"unix-time": []string{timeStr}},
+		},
+	}
+	suback.SetVersion(5)
+
+	var buff bytes.Buffer
+
+	err := suback.WriteTo(&buff)
+	if err != nil {
+		t.Error("got error", err)
+	}
+	derivedHex := hex.EncodeToString(buff.Bytes())
+	fmt.Println("derived hex", derivedHex) // 901b000018260009756e69782d74696d65000a31323334353637383930
+
+	hexdata1 := derivedHex
+	data, _ := hex.DecodeString(hexdata1)
+	r := bytes.NewReader(data)
+
+	p, err := Decode(5, r)
+	if err != nil {
+		t.Error("got error", err)
+	}
+	fmt.Println("got packet", p, err)
+	sub := p.(*SubAckPacket)
+	got, ok := sub.Props.UserProps.Get("unix-time")
+	if got != timeStr || !ok {
+		t.Error("wanted ok, got", sub.Props.Reason)
+	}
+
+}
+
 func TestSubbasic5(t *testing.T) {
 
 	// These hex strings were glommed from 'pip3 install gmqtt'
@@ -76,6 +121,7 @@ func TestSubbasic5(t *testing.T) {
 	var buff bytes.Buffer
 
 	err = sub.WriteTo(&buff)
+	_ = err
 	derivedHex := hex.EncodeToString(buff.Bytes())
 	if derivedHex != hexdata2 {
 		t.Error("our result must match the gmqtt serialization")

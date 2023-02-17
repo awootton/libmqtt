@@ -295,6 +295,8 @@ const (
 	propKeyWildcardSubAvail       = 40 // byte, Packet: ConnAck
 	propKeySubIDAvail             = 41 // byte, Packet: ConnAck
 	propKeySharedSubAvail         = 42 // byte, Packet: ConnAck
+
+	propKeyUserPropsKeyAddedAlready = 99 // internal use only
 )
 
 type propertySet map[byte][][]byte
@@ -353,10 +355,16 @@ func (p propertySet) add(propKey byte, propValue interface{}) {
 
 func (p propertySet) set(propKey byte, propValue interface{}) {
 	//p.del(propKey) ??
-	_, ok := p[propKey]
-	if ok == false {
+	_, ok := propValue.(UserProps)
+	if ok || propKey == propKeyUserProps {
+		propKey = propKeyUserPropsKeyAddedAlready
+	}
+
+	_, ok = p[propKey]
+	if !ok {
 		p[propKey] = make([][]byte, 0)
 	}
+	// if the propValue is isUserProps then it will add it's own propKeyUserProps at this stage. (atw)
 	p.add(propKey, propValue)
 }
 
@@ -368,7 +376,9 @@ func (p propertySet) bytes() []byte {
 	var ret []byte
 	for propKey, propValue := range p {
 		for _, v := range propValue {
-			ret = append(ret, propKey)
+			if propKey != propKeyUserPropsKeyAddedAlready { // see above
+				ret = append(ret, propKey)
+			}
 			ret = append(ret, v...)
 		}
 	}
